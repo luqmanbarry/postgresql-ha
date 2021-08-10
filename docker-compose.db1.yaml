@@ -5,9 +5,9 @@ services:
     container_name: postgresdb01
     restart: always
     volumes:
-        - ./db/master-data:/var/lib/postgresql/data
-        - ./db/config/postgresql.conf:/etc/postgresql/postgresql.conf
-        - ./db/config/pg_hba.conf:/etc/postgresql/pg_hba.conf
+        - ./db/db1-data:/var/lib/postgresql/data
+        # - ./db/config/postgresql.conf:/etc/postgresql/postgresql.conf
+        # - ./db/config/pg_hba.conf:/etc/postgresql/pg_hba.conf
     ports:
       - "5432:5432"
     environment:

@@ -5,7 +5,7 @@ services:
     container_name: postgresdb02
     restart: always
     volumes:
-        - ./db/worker-data:/var/lib/postgresql/data
+        - ./db/db2-data:/var/lib/postgresql/data
         # - ./db/config/postgres.conf:/etc/postgresql/postgresql.conf
         # - ./db/config/pg_hba.conf:/etc/postgresql/pg_hba.conf
     ports:
