@@ -1,0 +1,32 @@
+version: '3'
+services:
+  postgresdb02:
+    image: quay.io/redhattelco/intelli-infra-db
+    container_name: postgresdb02
+    restart: always
+    volumes:
+        - ./db/worker-data:/var/lib/postgresql/data
+        # - ./db/config/postgres.conf:/etc/postgresql/postgresql.conf
+        # - ./db/config/pg_hba.conf:/etc/postgresql/pg_hba.conf
+    ports:
+      - "5433:5432"
+    environment:
+      - 'POSTGRES_PASSWORD=pgdbpassword'
+      - 'POSTGRES_USER=pgdbuser'
+  # postgresdb03:
+  #   image: quay.io/redhattelco/intelli-infra-db
+  #   container_name: postgresdb03
+  #   restart: always
+  #   volumes:
+  #     - ./db/worker-data-02:/var/lib/postgresql/data
+  #     # - ./db/config/postgres.conf:/etc/postgresql/postgresql.conf
+  #     # - ./db/config/pg_hba.conf:/etc/postgresql/pg_hba.conf
+  #   ports:
+  #     - "5434:5432"
+  #   environment:
+  #     - 'POSTGRES_PASSWORD=pgdbpassword'
+  #     - 'POSTGRES_USER=pgdbuser'
+networks:
+  default:
+    external:
+      name: pgdb-ha-network

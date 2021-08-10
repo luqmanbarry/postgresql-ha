@@ -1,0 +1,19 @@
+version: '3'
+services:
+  postgresdb01:
+    image: quay.io/redhattelco/intelli-infra-db
+    container_name: postgresdb01
+    restart: always
+    volumes:
+        - ./db/master-data:/var/lib/postgresql/data
+        - ./db/config/postgresql.conf:/etc/postgresql/postgresql.conf
+        - ./db/config/pg_hba.conf:/etc/postgresql/pg_hba.conf
+    ports:
+      - "5432:5432"
+    environment:
+      - 'POSTGRES_PASSWORD=pgdbpassword'
+      - 'POSTGRES_USER=pgdbuser'
+networks:
+  default:
+    external:
+      name: pgdb-ha-network
