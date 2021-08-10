@@ -8,9 +8,13 @@
 
 `
     docker network create pgdb-ha-network --subnet "10.0.0.1/24"
+
     docker-compose -f docker-compose.db1.yaml up --force-recreate
+
     docker-compose -f docker-compose.db1.yaml down
+
     cp db/config/pg_hba.conf db/config/postgresql.conf db/db1-data
+    
     docker-compose -f docker-compose.db1.yaml up --force-recreate
 `
 #### Note: 3,4,5 are execute if pb_hba.conf and postgresql.conf files do not exist
@@ -48,6 +52,7 @@
 
 `
     docker exec -it postgresdb01 psql -U pgdbuser
+
     CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'pgdbpassword';
 `
 
@@ -61,6 +66,7 @@
 
 `
     SELECT * FROM pg_replication_slots;
+
     \q; -- Quite Postgres shell
 `
 
@@ -68,6 +74,7 @@
 
 `
     docker-compose -f docker-compose.db1.yaml down
+
     docker-compose -f docker-compose.db1.yaml up --force-recreate
 
 `
@@ -76,8 +83,11 @@
 
 `
     docker exec -it postgresdb01 /bin/bash
+
     pg_basebackup -D /tmp/postgresslave1 -S replication_slot_slave1 -X stream -P -U replicator -Fp -R
+
     ls /tmp/ -- confirm folder has been created
+
     exit -- Exit container
 `
 
@@ -85,6 +95,7 @@
 
 `
     docker cp postgresdb01:/tmp/postgresslave1/ ./db/db2-data
+
     Repeat above command to the number of worker containers
 `
 
@@ -98,8 +109,11 @@ Note: This backup directory can be anywhere
     Example below:
 
     standby_mode = 'on'
+
     primary_conninfo = 'host=postgresdb01 user=replicator passfile=''/root/.pgpass'' port=5432 sslmode=prefer sslcompression=1 krbsrvname=postgres target_session_attrs=any'
+
     primary_slot_name = 'replication_slot_slave2'
+
     trigger_file = '/var/lib/postgresql/data/failover'
 `
 
@@ -107,7 +121,9 @@ Note: This backup directory can be anywhere
 
 `
     wal_level = hot_standby # allow queries while in read only recovery mode
+
 	max_wal_senders = 5 # this sends the wal files, how many db2 can connect and pull docker
+
 	hot_standby = on # allow queries while in read only recovery mode
 `
 
@@ -116,8 +132,11 @@ Note: This backup directory can be anywhere
 
 `
     docker-compose -f docker-compose.db2.yaml up --force-recreate
+
     docker exec -it postgresdb02 /bin/bash
+
     psql -h postgresdb02 -p 5432 -U pgdbuser
+
     select * from pg_stat_replication;
 
 `
@@ -128,15 +147,25 @@ Note: This backup directory can be anywhere
 
 `
     docker run --rm --name postgres-test --network=pgdb-ha-network -it postgres:10 /bin/bash
+
     psql -h postgresdb01 -p 5432 -U pgdbuser
+
     Enter password when prompted
+
     \l;    -- list databases
+
     CREATE DATABASE pghatest;
+
     \c pghatest; -- Switch to database
+
     CREATE TABLE todo (id SERIAL, name varchar(100) NOT NULL, description varchar(200),PRIMARY KEY(id));
+
     \dt; -- Show tables
+
     insert into todo(name, description) values('TODO #1', 'Describing TODO #1');
+
     select * from todo; -- Display content of todo table
+
     \q   -- Quit PostgreSql shell
 `
 
@@ -144,14 +173,23 @@ Note: This backup directory can be anywhere
 
 `
     docker exec -it postgresdb02 /bin/bash
+
     psql -h postgresdb02 -p 5432 -U pgdbuser
+
     Enter password when prompted
+
     \l    -- list databases
+
     \c pghatest;   -- Switch to database
+
     \dt; -- Show tables
+
     select * from todo; -- Display content of todo table
+
     insert into todo(name, description) values('NO TODO #1', 'NO TODO #1 coz R/O Only');
+
     Since postgresdb02 is in R/O mode, insert statement will fail with: ERROR:  cannot execute INSERT in a read-only transaction
+
     \q   -- Quit PostgreSql shell
 `
 
@@ -161,8 +199,11 @@ Note: This backup directory can be anywhere
 
 `
     standby_mode = 'on'
+
     primary_conninfo = 'host=<FAILOVER_HOST> user=replicator passfile=''/root/.pgpass'' port=5432 sslmode=prefer sslcompression=1 krbsrvname=postgres target_session_attrs=any'
+
     primary_slot_name = 'replication_slot_slave1'
+
     trigger_file = '/var/lib/postgresql/data/failover'
 `
 
@@ -171,10 +212,12 @@ Note: This backup directory can be anywhere
 3. Restart the VMs for which recovery.conf file was edited
 
 4. Create failover file is it does not exist
+
 Example: For setting up postgresdb02 as db1, execute following;
 
 `
     docker exec -it postgresdb02 /bin/bash
+
     touch /var/lib/postgresql/data/failover
 `
 
@@ -186,8 +229,11 @@ Example: For setting up postgresdb02 as db1, execute following;
 
 `
     docker exec -it postgresdb02 /bin/bash
+
     pg_basebackup -D /tmp/postgresslave1 -S replication_slot_slave1 -X stream -P -U replicator -Fp -R
+
     ls /tmp/ -- confirm folder has been created
+
     exit -- Exit container
 `
 
@@ -195,6 +241,7 @@ Example: For setting up postgresdb02 as db1, execute following;
 
 `
     docker cp postgresdb02:/tmp/postgresslave1/ ./db/db1-data
+
     Repeat above command to the number of worker containers
 `
 
@@ -205,8 +252,13 @@ Example: For setting up postgresdb02 as db1, execute following;
     Example below:
 
     standby_mode = 'on'
-    primary_conninfo = 'host=postgresdb02 user=replicator passfile=''/root/.pgpass'' port=5432 sslmode=prefer sslcompression=1 krbsrvname=postgres target_session_attrs=any'
+
+    primary_conninfo = 'host=postgresdb02 user=replicator passfile=''/root/.pgpass'' port=5432 sslmode=prefer sslcompression=1 
+
+    krbsrvname=postgres target_session_attrs=any'
+
     primary_slot_name = 'replication_slot_slave2'
+
     trigger_file = '/var/lib/postgresql/data/failover'
 `
 
@@ -214,11 +266,17 @@ Example: For setting up postgresdb02 as db1, execute following;
 
 `
     docker-compose -f docker-compose.db2.yaml up --force-recreate
+
     docker exec -it postgresdb02 /bin/bash
+
     psql -h postgresdb02 -p 5432 -U pgdbuser
+
     select * from pg_stat_replication;
+
     \c pghatest;   -- Switch to database
+
     \dt; -- Show tables
+
     select * from todo; -- Display content of todo table
 
 `
