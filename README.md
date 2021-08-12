@@ -26,7 +26,6 @@
 
 4. Add Values below to postres.conf file to enable replication
 
-    `
         # Replication
 
         wal_level = replica
@@ -38,15 +37,11 @@
         max_replication_slots = 10
         
         hot_standby_feedback = on
-    `
+
 
 5. Create pg_hba.conf file, use docs for more fine tuning
-
-    `
-        Follow link: https://www.postgresql.org/docs/10/auth-pg-hba-conf.html
-    `
-
-
+    
+    Follow link: https://www.postgresql.org/docs/10/auth-pg-hba-conf.html
 
 ## Prepare the worker servers
 
@@ -59,9 +54,7 @@
 
 2. Create the physical replication slot on db1 for each container
 
-    `
-        SELECT * FROM pg_create_physical_replication_slot('replication_slot_slave1');
-    `
+    `SELECT * FROM pg_create_physical_replication_slot('replication_slot_slave1');`
 
 3. Run below query to confirm physical replication has been created
 
@@ -102,7 +95,7 @@
 
 1. Edit recovery.conf file from pg_basebackup dir(worker-data) to set correct db1 server host IP/DNS, set failover file as well
 
-    `
+
         In config key: primary_conninfo, edit value of host to point to db1 host(ie: host=postgresdb01)
         Example below:
 
@@ -113,22 +106,22 @@
         primary_slot_name = 'replication_slot_slave2'
 
         trigger_file = '/var/lib/postgresql/data/failover'
-    `
+
 
 2. In db/worker-data directory, edit postgresql.conf file to enable hot_standby
 
-    `
+
         wal_level = hot_standby # allow queries while in read only recovery mode
 
         max_wal_senders = 5 # this sends the wal files, how many db2 can connect and pull docker
 
         hot_standby = on # allow queries while in read only recovery mode
-    `
+
 
 
 3. Launch the workers docker-compose file, validate replications is activated
 
-    `
+
         docker-compose -f docker-compose.db2.yaml up --force-recreate
 
         docker exec -it postgresdb02 /bin/bash
@@ -137,13 +130,13 @@
 
         select * from pg_stat_replication;
 
-    `
+
 
 4. Validate data replication on worker containers
 
     a. Create few tables in db1 server
 
-`
+
         docker run --rm --name postgres-test --network=pgdb-ha-network -it postgres:10 /bin/bash
 
         psql -h postgresdb01 -p 5432 -U pgdbuser
@@ -165,11 +158,11 @@
         select * from todo; -- Display content of todo table
 
         \q   -- Quit PostgreSql shell
-`
+
 
     b. Connect to worker(R\O) containers to confirm replication is in full swing
 
-`
+
         docker exec -it postgresdb02 /bin/bash
 
         psql -h postgresdb02 -p 5432 -U pgdbuser
@@ -189,13 +182,13 @@
         Since postgresdb02 is in R/O mode, insert statement will fail with: ERROR:  cannot execute INSERT in a read-only transaction
 
         \q   -- Quit PostgreSql shell
-`
+
 
 ## Failover Steps
 
 1. Validate recovery.conf file in data direcotry of vm/container taking over, if file absent create one with below content
 
-`
+
         standby_mode = 'on'
 
         primary_conninfo = 'host=<FAILOVER_HOST> user=replicator passfile=''/root/.pgpass'' port=5432 sslmode=prefer sslcompression=1 krbsrvname=postgres target_session_attrs=any'
@@ -203,7 +196,7 @@
         primary_slot_name = 'replication_slot_slave1'
 
         trigger_file = '/var/lib/postgresql/data/failover'
-`
+
 
 2. Edit recovery.conf file for each worker vm to point to correct db1 host
 
@@ -213,11 +206,11 @@
 
     Example: For setting up postgresdb02 as db1, execute following;
 
-`
+
         docker exec -it postgresdb02 /bin/bash
 
         touch /var/lib/postgresql/data/failover
-`
+
 
 4. Restart the VMs for which recovery.conf file was edited
 
@@ -225,7 +218,7 @@
 
 1. Create db2 pg_base_backup for worker restore
 
-`
+
         docker exec -it postgresdb02 /bin/bash
 
         pg_basebackup -D /tmp/postgresslave1 -S replication_slot_slave1 -X stream -P -U replicator -Fp -R
@@ -233,15 +226,15 @@
         ls /tmp/ -- confirm folder has been created
 
         exit -- Exit container
-`
+
 
 2. Copy pg_basebackup output directories to host machine for data mounting into worker containers
 
-`
+
         docker cp postgresdb02:/tmp/postgresslave1/ ./db/db1-data
 
         Repeat above command to the number of worker containers
-`
+
 
 3. Edit recovery.conf file from pg_basebackup dir(db1-data) to set correct db2 server host IP/DNS, set failover file as well
 
