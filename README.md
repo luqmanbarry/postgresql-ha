@@ -249,7 +249,7 @@
     In config key: primary_conninfo, edit value of host to point to db1 host(ie: host=postgresdb01)
     Example below:
 
-`
+
 
         standby_mode = 'on'
 
@@ -260,11 +260,11 @@
         primary_slot_name = 'replication_slot_slave2'
 
         trigger_file = '/var/lib/postgresql/data/failover'
-`
+
 
 3. Launch the db2 docker-compose file, validate replications is activated
 
-`
+
         docker-compose -f docker-compose.db2.yaml up --force-recreate
 
         docker exec -it postgresdb02 /bin/bash
@@ -279,7 +279,7 @@
 
         select * from todo; -- Display content of todo table
 
-`
+
 
 
 
